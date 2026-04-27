@@ -1,0 +1,67 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isEmailVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+
+    // --- Entity Validations ---
+    
+    function isValidProject(data) {
+      return data.ticker is string && data.ticker.size() <= 10 &&
+             data.name is string && data.name.size() <= 100 &&
+             data.expectedReturn is number &&
+             data.volatility is number &&
+             data.sroiScore is number &&
+             data.sroiScore >= 0 && data.sroiScore <= 1;
+    }
+
+    function isValidPortfolio(data) {
+      return data.userId == request.auth.uid &&
+             data.name is string && data.name.size() <= 100 &&
+             data.budget is number && data.budget >= 0 &&
+             data.alpha is number &&
+             data.riskLevel is string &&
+             data.allocations is list &&
+             data.createdAt is timestamp &&
+             data.updatedAt is timestamp;
+    }
+
+    // --- Collection Rules ---
+
+    match /projects/{projectId} {
+      allow get: if true;
+      allow list: if true;
+      // Projects registry is currently system-populated
+      allow write: if false; 
+    }
+
+    match /portfolios/{portfolioId} {
+      allow get: if isOwner(existing().userId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isOwner(incoming().userId) && 
+                      isValidPortfolio(incoming()) &&
+                      incoming().createdAt == request.time &&
+                      incoming().updatedAt == request.time;
+                      
+      allow update: if isOwner(existing().userId) &&
+                      isValidPortfolio(incoming()) &&
+                      incoming().userId == existing().userId &&
+                      incoming().createdAt == existing().createdAt &&
+                      incoming().updatedAt == request.time &&
+                      incoming().diff(existing()).affectedKeys().hasOnly(['name', 'budget', 'alpha', 'riskLevel', 'allocations', 'totalImpact', 'updatedAt']);
+                      
+      allow delete: if isOwner(existing().userId);
+    }
+  }
+}

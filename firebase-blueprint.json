@@ -1,0 +1,62 @@
+{
+  "entities": {
+    "Project": {
+      "title": "Impact Project",
+      "description": "A project available for investment with financial and social impact metrics.",
+      "type": "object",
+      "properties": {
+        "ticker": { "type": "string" },
+        "name": { "type": "string" },
+        "expectedReturn": { "type": "number" },
+        "volatility": { "type": "number" },
+        "sroiScore": { "type": "number" },
+        "description": { "type": "string" },
+        "category": { "type": "string" }
+      },
+      "required": ["ticker", "name", "expectedReturn", "volatility", "sroiScore"]
+    },
+    "Portfolio": {
+      "title": "User Portfolio",
+      "description": "A saved portfolio allocation with user-defined parameters and calculated impacts.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "budget": { "type": "number" },
+        "alpha": { "type": "number" },
+        "riskLevel": { "type": "string" },
+        "allocations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ticker": { "type": "string" },
+              "weight": { "type": "number" },
+              "amount": { "type": "number" }
+            }
+          }
+        },
+        "totalImpact": {
+          "type": "object",
+          "properties": {
+            "co2Saved": { "type": "number" },
+            "livesImpacted": { "type": "number" }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "budget", "allocations"]
+    }
+  },
+  "firestore": {
+    "projects": {
+      "schema": "Project",
+      "description": "Global registry of impact projects."
+    },
+    "portfolios": {
+      "schema": "Portfolio",
+      "description": "User saved portfolios."
+    }
+  }
+}
